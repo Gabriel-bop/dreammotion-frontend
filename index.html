@@ -1,100 +1,56 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DreamMotion</title>
-  <style>
-    body {
-      background: linear-gradient(#89f7fe, #66a6ff);
-      min-height: 100vh;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      font-family: 'Arial', sans-serif;
-      color: white;
-      text-align: center;
-      padding: 20px;
-    }
-    input[type="file"] {
-      margin: 20px 0;
-    }
-    button {
-      padding: 10px 20px;
-      font-size: 1.2rem;
-      background-color: white;
-      color: #66a6ff;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-    button:hover {
-      background-color: #e0e0e0;
-    }
-    a {
-      margin-top: 20px;
-      color: #ffffff;
-      text-decoration: underline;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DreamMotion - Crear Video</title>
 </head>
 <body>
+    <h1>DreamMotion</h1>
+    <input type="file" id="images" multiple accept="image/*">
+    <button onclick="createVideo()">Crear Video</button>
+    <br><br>
+    <video id="videoPlayer" controls style="max-width: 600px; display: none;"></video>
 
-  <h1>DreamMotion</h1>
-  <p>Sube tus imágenes para crear un video mágico</p>
+    <script>
+        const API_URL = "https://dreammotion-backend.onrender.com"; // <--- Esta es la URL correcta de tu backend
 
-  <form id="uploadForm">
-    <input type="file" id="images" name="images" multiple accept="image/*" required>
-    <br>
-    <button type="submit">Crear Video</button>
-  </form>
+        async function createVideo() {
+            const input = document.getElementById('images');
+            const files = input.files;
 
-  <div id="result"></div>
+            if (files.length === 0) {
+                alert("Por favor selecciona al menos una imagen.");
+                return;
+            }
 
-  <script>
-    const backendUrl = "https://dreammotion-backend.onrender.com"; // URL de tu backend
+            const formData = new FormData();
+            for (let i = 0; i < files.length; i++) {
+                formData.append('files', files[i]);
+            }
 
-    const form = document.getElementById('uploadForm');
-    const resultDiv = document.getElementById('result');
+            try {
+                const response = await fetch(`${API_URL}/create-video`, {
+                    method: 'POST',
+                    body: formData
+                });
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const files = document.getElementById('images').files;
-      
-      if (files.length === 0) {
-        alert('¡Por favor selecciona al menos una imagen!');
-        return;
-      }
+                if (!response.ok) {
+                    throw new Error("Hubo un error creando el video.");
+                }
 
-      const formData = new FormData();
-      for (let i = 0; i < files.length; i++) {
-        formData.append('images', files[i]);
-      }
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
 
-      resultDiv.innerHTML = "Creando tu video, por favor espera...";
+                const videoPlayer = document.getElementById('videoPlayer');
+                videoPlayer.src = url;
+                videoPlayer.style.display = 'block';
 
-      try {
-        const response = await fetch(`${backendUrl}/generate-video/`, {
-          method: 'POST',
-          body: formData
-        });
-
-        if (!response.ok) throw new Error('Error en la generación del video');
-
-        const data = await response.json();
-        resultDiv.innerHTML = `
-          <p>¡Video creado exitosamente!</p>
-          <a href="${backendUrl}${data.video_url}" target="_blank">Descargar Video</a>
-        `;
-      } catch (error) {
-        console.error(error);
-        resultDiv.innerHTML = "Hubo un error al crear tu video.";
-      }
-    });
-  </script>
-
+            } catch (error) {
+                alert("Hubo un error creando el video.");
+                console.error(error);
+            }
+        }
+    </script>
 </body>
 </html>
